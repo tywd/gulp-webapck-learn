@@ -1,6 +1,6 @@
 html {
   body {
-    background: blanchedalmond;
-    // background: url(#{$CDN}/simao.jpg); // 加载 cdn 资源示例
+    // background: blanchedalmond;
+    background: url(#{$CDN}/simao.jpg); // 加载 cdn 资源示例
   }
 }

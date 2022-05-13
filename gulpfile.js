@@ -37,7 +37,10 @@ const cache = require('gulp-cache') // 利用 gulp-cache 缓存来优化构建�
 const webpack = require('webpack-stream')
 const webpackConfig = require("./webpack.config.js")
 const named = require('vinyl-named') // vinyl-named 插件可以解决多页面开发的问题。不至于每次加页面都要去webpack 修改 entry 和 output
-
+const { js, libJs } = require('./gulpfile-js')
+const config = require('./config.js')
+const preprocess = require("gulp-preprocess") // 预处理 html 的插件，它可以在程序运行或打包前注入 html 的代码。
+const sassVariables = require('gulp-sass-variables')
 // function html() {
 //   return src('src/**/*.html')  // src('src/**/*.html') 中的字符串被 gulp 称为 glob 字符串，glob 字符串是用来匹配文件路径
 //     .pipe(dest('dist'))  // pipe 即是管道，管道是用于连接“转换流”或者“可写流”， 这里 pipe 就是用来连接 dest 的转换流（将流转换为文件）。
@@ -50,6 +53,9 @@ function html() {
     .pipe(fileinclude({
       prefix: '@@', // 引用符号
       basepath: './src/include' // 引用文件路径
+    }))
+    .pipe(preprocess({
+      context: { ...config }
     }))
     .pipe(htmlmin({
       removeComments: true, // 清除HTML注释
@@ -77,24 +83,24 @@ function devServer() {
   }))
 }
 
-function js() {
-  return src(['src/js/**/*.js'])
-    .pipe(changed('dist/js/**/'))
-    .pipe(named(function (file) {
-      return file.relative.slice(0, -Path.extname(file.path).length)
-    }))
-    .pipe(webpack(webpackConfig))
-    .pipe(plumber())
-    .pipe(uglify())
-    .pipe(dest('dist/js'))
-}
+// function js() {
+//   return src(['src/js/**/*.js'])
+//     .pipe(changed('dist/js/**/'))
+//     .pipe(named(function (file) {
+//       return file.relative.slice(0, -Path.extname(file.path).length)
+//     }))
+//     .pipe(webpack(webpackConfig))
+//     .pipe(plumber())
+//     .pipe(uglify())
+//     .pipe(dest('dist/js'))
+// }
 
-function libJs() {
-  return src(['src/lib/**/*.js'])
-    .pipe(changed('dist/lib/**/'))
-    .pipe(plumber())
-    .pipe(dest('dist/lib'))
-}
+// function libJs() {
+//   return src(['src/lib/**/*.js'])
+//     .pipe(changed('dist/lib/**/'))
+//     .pipe(plumber())
+//     .pipe(dest('dist/lib'))
+// }
 
 function css() {
   return src(['src/css/**/*.css'])
@@ -108,6 +114,9 @@ function scss() {
   return src(['src/scss/**/*.scss'])
     .pipe(changed('dist/scss/**/'))
     .pipe(plumber())
+    .pipe(sassVariables({
+      $CDN: config.CDN,
+    }))
     .pipe(sass())
     .pipe(cleanCss())
     .pipe(dest('dist/scss'))
@@ -160,6 +169,9 @@ function watcher() {
 function clean() {
   return del('dist')
 }
+console.log('环境变量：' + process.env.NODE_ENV)
 
+// 运行 gulp 命令，就是开发环境
 exports.default = series(clean, html, libJs, js, css, scss, libCss, img, devServer, watcher)
+// 运行 build 命令，就是生产环境
 exports.build = series(clean, html, libJs, js, css, scss, libCss, img)
