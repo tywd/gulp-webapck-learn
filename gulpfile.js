@@ -32,6 +32,11 @@ const cleanCss = require('gulp-clean-css') // 压缩 css 的插件
 const sass = require('gulp-sass')(require('sass')) // 使用 sass 编译器
 // const sass = require('gulp-sass')(require('node-sass')) // 使用 node-sass 编译器
 
+const imagemin = require('gulp-imagemin') // 压缩图片的插件 cnpm安装，npm安装有报错
+
+// gulp-cache 是所有文件都会通过（可能是指所有文件会通过管道，但是部分文件是从缓存中直接取得，不需要额外处理，因此起到优化作用）
+const cache = require('gulp-cache') // 利用 gulp-cache 缓存来优化构建图片过程。
+ 
 // function html() {
 //   return src('src/**/*.html')  // src('src/**/*.html') 中的字符串被 gulp 称为 glob 字符串，glob 字符串是用来匹配文件路径
 //     .pipe(dest('dist'))  // pipe 即是管道，管道是用于连接“转换流”或者“可写流”， 这里 pipe 就是用来连接 dest 的转换流（将流转换为文件）。
@@ -110,6 +115,17 @@ function libCss() {
     .pipe(dest('dist/libCss'))
 }
 
+function img() {
+  return src(['src/assets/img/**/*.{png,jpg,gif,jpeg,ico}']) //后缀都用小写，不然不识别
+    .pipe(imagemin({
+      optimizationLevel: 5, //类型：Number  默认：3  取值范围：0-7（优化等级）
+      progressive: true, //类型：Boolean 默认：false 无损压缩jpg图片
+      interlaced: true, //类型：Boolean 默认：false 隔行扫描gif进行渲染
+      multipass: true //类型：Boolean 默认：false 多次优化svg直到完全优化
+    }))
+    .pipe(dest('dist/assets/img'))
+}
+
 function watcher() {
   // watch('src/**/*.html', series(html))
   watch('src/**/*.html', series(html)).on('unlink', function (path) { // 将src下被手动删除的html 也一并在dist下删除
@@ -131,11 +147,14 @@ function watcher() {
   watch('src/libCss/**/*.css', series(libCss)).on('unlink', function (path) {
     del('dist/libCss/**/' + Path.basename(path))
   })
+  watch('src/assets/img/**/*.{png,jpg,gif,jpeg,ico}', series(img)).on('unlink', function (path) {
+    del('dist/assets/img/**/' + Path.basename(path))
+  })
 }
 
 function clean() {
   return del('dist')
 }
 
-exports.default = series(clean, html, libJs, js, css, scss, libCss, devServer, watcher)
-exports.build = series(clean, html, libJs, js, css, scss, libCss)
+exports.default = series(clean, html, libJs, js, css, scss, libCss, img, devServer, watcher)
+exports.build = series(clean, html, libJs, js, css, scss, libCss, img)
