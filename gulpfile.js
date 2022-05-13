@@ -47,6 +47,7 @@ const sassVariables = require('gulp-sass-variables')
 // }
 
 function html() {
+  // **/*.js 能匹配 foo.js,a/foo.js,a/b/foo.js,a/b/c/foo.js
   return src(['src/**/*.html', '!src/include/**.html']) // 处理 src 目录里的所有 html 文件，但是不处理 src/include 里的 html 文件  include 文件夹里的文件就是 “组件”，用来被引入到 html 去。
     .pipe(changed('dist'))
     .pipe(plumber())
