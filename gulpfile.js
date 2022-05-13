@@ -26,6 +26,12 @@ const changed = require('gulp-changed') // changed 是一个只让更改过的�
 const webserver = require('gulp-webserver') // 一个本地服务器，具有热替换、代理等功能，使用它可以更快捷开发程序 
 const del = require('del') // del 插件和 gulp 的 watch 来实现自动删除文件功能。
 const Path = require('path')
+const uglify = require('gulp-uglify') // 一个用于压缩 js 的插件，下面我们安装这个插件来压缩 js
+const plumber = require('gulp-plumber') // 一个可以防止编译出错导致进程退出的插件，如果程序出错，它会将异常抛到终端上，并且防止进程退出。
+const cleanCss = require('gulp-clean-css') // 压缩 css 的插件
+const sass = require('gulp-sass')(require('sass')) // 使用 sass 编译器
+// const sass = require('gulp-sass')(require('node-sass')) // 使用 node-sass 编译器
+
 // function html() {
 //   return src('src/**/*.html')  // src('src/**/*.html') 中的字符串被 gulp 称为 glob 字符串，glob 字符串是用来匹配文件路径
 //     .pipe(dest('dist'))  // pipe 即是管道，管道是用于连接“转换流”或者“可写流”， 这里 pipe 就是用来连接 dest 的转换流（将流转换为文件）。
@@ -34,6 +40,7 @@ const Path = require('path')
 function html() {
   return src(['src/**/*.html', '!src/include/**.html']) // 处理 src 目录里的所有 html 文件，但是不处理 src/include 里的 html 文件  include 文件夹里的文件就是 “组件”，用来被引入到 html 去。
     .pipe(changed('dist'))
+    .pipe(plumber())
     .pipe(fileinclude({
       prefix: '@@', // 引用符号
       basepath: './src/include' // 引用文件路径
@@ -64,10 +71,65 @@ function devServer() {
   }))
 }
 
+function js() {
+  return src(['src/js/**/*.js'])
+    .pipe(changed('dist/js/**/'))
+    .pipe(plumber())
+    .pipe(uglify())
+    .pipe(dest('dist/js'))
+}
+
+function libJs() {
+  return src(['src/lib/**/*.js'])
+    .pipe(changed('dist/lib/**/'))
+    .pipe(plumber())
+    .pipe(dest('dist/lib'))
+}
+
+function css() {
+  return src(['src/css/**/*.css'])
+    .pipe(changed('dist/css/**/'))
+    .pipe(plumber())
+    .pipe(cleanCss())
+    .pipe(dest('dist/css'))
+}
+
+function scss() {
+  return src(['src/scss/**/*.scss'])
+    .pipe(changed('dist/scss/**/'))
+    .pipe(plumber())
+    .pipe(sass())
+    .pipe(cleanCss())
+    .pipe(dest('dist/scss'))
+}
+
+function libCss() {
+  return src(['src/libCss/**/*.css'])
+    .pipe(changed('dist/libCss/**/'))
+    .pipe(plumber())
+    .pipe(dest('dist/libCss'))
+}
+
 function watcher() {
   // watch('src/**/*.html', series(html))
   watch('src/**/*.html', series(html)).on('unlink', function (path) { // 将src下被手动删除的html 也一并在dist下删除
     del('dist/**/' + Path.basename(path))
+  })
+  watch('src/js/**/*.js', series(js)).on('unlink', function (path) {
+    del('dist/js/**/' + Path.basename(path))
+  })
+  watch('src/lib/**/*.js', series(libJs)).on('unlink', function (path) {
+    del('dist/lib/**/' + Path.basename(path))
+  })
+  watch('src/css/**/*.css', series(css)).on('unlink', function (path) {
+    del('dist/css/**/' + Path.basename(path))
+  })
+  watch('src/scss/**/*.scss', series(scss)).on('unlink', function (path) {
+    var cssName = Path.basename(path).split('.scss')[0] // scss 编译出来的文件后缀是 css 而不是 scss，需要特别处理
+    del('dist/scss/**/' + cssName + '.css')
+  })
+  watch('src/libCss/**/*.css', series(libCss)).on('unlink', function (path) {
+    del('dist/libCss/**/' + Path.basename(path))
   })
 }
 
@@ -75,5 +137,5 @@ function clean() {
   return del('dist')
 }
 
-exports.default = series(clean, html, devServer, watcher)
-exports.build = series(html)
+exports.default = series(clean, html, libJs, js, css, scss, libCss, devServer, watcher)
+exports.build = series(clean, html, libJs, js, css, scss, libCss)
