@@ -31,12 +31,13 @@ const plumber = require('gulp-plumber') // 一个可以防止编译出错导致�
 const cleanCss = require('gulp-clean-css') // 压缩 css 的插件
 const sass = require('gulp-sass')(require('sass')) // 使用 sass 编译器
 // const sass = require('gulp-sass')(require('node-sass')) // 使用 node-sass 编译器
-
 const imagemin = require('gulp-imagemin') // 压缩图片的插件 cnpm安装，npm安装有报错
-
 // gulp-cache 是所有文件都会通过（可能是指所有文件会通过管道，但是部分文件是从缓存中直接取得，不需要额外处理，因此起到优化作用）
 const cache = require('gulp-cache') // 利用 gulp-cache 缓存来优化构建图片过程。
- 
+const webpack = require('webpack-stream')
+const webpackConfig = require("./webpack.config.js")
+const named = require('vinyl-named') // vinyl-named 插件可以解决多页面开发的问题。不至于每次加页面都要去webpack 修改 entry 和 output
+
 // function html() {
 //   return src('src/**/*.html')  // src('src/**/*.html') 中的字符串被 gulp 称为 glob 字符串，glob 字符串是用来匹配文件路径
 //     .pipe(dest('dist'))  // pipe 即是管道，管道是用于连接“转换流”或者“可写流”， 这里 pipe 就是用来连接 dest 的转换流（将流转换为文件）。
@@ -79,6 +80,10 @@ function devServer() {
 function js() {
   return src(['src/js/**/*.js'])
     .pipe(changed('dist/js/**/'))
+    .pipe(named(function (file) {
+      return file.relative.slice(0, -Path.extname(file.path).length)
+    }))
+    .pipe(webpack(webpackConfig))
     .pipe(plumber())
     .pipe(uglify())
     .pipe(dest('dist/js'))
