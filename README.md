@@ -11,3 +11,6 @@
     "gulp-uglify": "^3.0.2", // 一个用于压缩 js 的插件，下面我们安装这个插件来压缩 js
 }
 ```
+
+参考demo
+https://github.com/tywd/gulp-webapck-learn
